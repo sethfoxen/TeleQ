@@ -9,7 +9,7 @@ This bot automatically forwards messages sent to it in a private chat to a speci
 - Required dependencies (listed in `requirements.txt`)
 - A Telegram bot API token
 - A Telegram API ID and API hash (https://my.telegram.org/)
-- A channel ID where messages will be forwarded
+- A channel/group/supergroup ID where messages will be forwarded
 
 ## Installation
 1. Clone this repository or download the script.
@@ -38,7 +38,7 @@ Modify `config.json` to configure the bot:
 - **`api_id`** & **`api_hash`**: Required for the Telegram API. (https://my.telegram.org/)
 - **`bot_token`**: The bot's API token.
 - **`admin_id`**: Your Telegram user ID (to identify the admin).
-- **`channel_id`**: The ID of the channel where messages should be forwarded.
+- **`channel_id`**: The ID of the channel/group/supergroup where messages should be forwarded.
 - **`forward_interval`**: How often (in seconds) a message is forwarded.
 - **`debug_mode`**: Enables detailed logging when set to `true`.
 - **`randomize_queue`**: If `true`, messages will be forwarded in random order.
@@ -48,6 +48,7 @@ Run the bot with:
 ```sh
 python bot.py
 ```
+Add your created bot to your channel/group/supergroup, and allow it to manage messages. It doesn't need any other permissions.
 
 ### Sending Messages to the Bot
 - Send any message (text, image, video, etc.) to the bot in a private chat.
