@@ -17,7 +17,7 @@ except FileNotFoundError:
         "api_hash": "your_api_hash",  # Get it from https://my.telegram.org/apps
         "bot_token": "your_bot_token",  #Create your bot using BotFather
         "admin_id": 123456789,  #You can get yours using Get ID Bot '@get_id_bot'
-        "channel_id": -1001234567890,  #Add Get ID Bot to your channel, and send a message
+        "channel_id": -1001234567890,  #Add Get ID Bot to your channel, and send a message, could also be the ID of a group/supergroup
         "forward_interval": 60,  #How often the bot posts to your channel, in seconds
         "debug_mode": False,  #Will print actions the script takes to the terminal
         "randomize_queue": False  #Picks a random message from the queue, instead of posting them in sequence
