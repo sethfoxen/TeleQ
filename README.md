@@ -1,13 +1,14 @@
+# DISCLAIMER: The majority of this code was generated using ChatGPT
 # TeleQ: Telegram Queue Bot
 
 ## Description
-This bot automatically forwards messages sent to it in a private chat to a specified Telegram channel at a set interval. The messages are stored in a persistent queue, ensuring that they are not lost even if the bot restarts. Additional features include randomizing the queue order, error handling for API limits and connection issues, and admin-configurable settings.
+This bot automatically forwards messages sent to it in a private chat to a specified Telegram channel at a set interval. Messages are stored in a persistent queue, ensuring that they aren't lost even if the bot restarts. There are options to include randomizing the queue order, error handling for API limits and connection issues, and admin-configurable settings. You'll need to create an app on https://my.telegram.org/ by clicking "API development tools" and signing in using your Telegram account in order to get your API ID and hash.
 
 ## Requirements
-- Python 3.10 or later
+- Python 3.8+, 3.11+ preferred
 - Required dependencies (listed in `requirements.txt`)
 - A Telegram bot API token
-- A Telegram API ID and API hash
+- A Telegram API ID and API hash (https://my.telegram.org/)
 - A channel ID where messages will be forwarded
 
 ## Installation
@@ -34,7 +35,7 @@ Modify `config.json` to configure the bot:
 }
 ```
 ### Settings:
-- **`api_id`** & **`api_hash`**: Required for the Telegram API.
+- **`api_id`** & **`api_hash`**: Required for the Telegram API. (https://my.telegram.org/)
 - **`bot_token`**: The bot's API token.
 - **`admin_id`**: Your Telegram user ID (to identify the admin).
 - **`channel_id`**: The ID of the channel where messages should be forwarded.
