@@ -46,7 +46,7 @@ Modify `config.json` to configure the bot:
 ## Usage
 Run the bot with:
 ```sh
-python telegram_queue_bot.py
+python bot.py
 ```
 
 ### Sending Messages to the Bot
