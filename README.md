@@ -4,6 +4,8 @@
 ## Description
 This bot automatically forwards messages sent to it in a private chat to a specified Telegram channel at a set interval. Messages are stored in a persistent queue, ensuring that they aren't lost even if the bot restarts. There are options to include randomizing the queue order, error handling for API limits and connection issues, and admin-configurable settings. You'll need to create an app on https://my.telegram.org/ by clicking "API development tools" and signing in using your Telegram account in order to get your API ID and hash.
 
+It uses relative paths for it's config files, so it SHOULD be compatable with Windows, MacOS, and Linux, but I've only tested it using Linux.
+
 ## Requirements
 - Python 3.8+, 3.11+ preferred
 - Required dependencies (listed in `requirements.txt`)

@@ -1,3 +1,4 @@
+import os
 import asyncio
 import json
 import logging
@@ -7,9 +8,13 @@ from telethon import TelegramClient, events, errors
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Define relative paths
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Load configuration from config.json
+config_path = os.path.join(BASE_DIR, "config.json")
 try:
-    with open("config.json", "r") as f:
+    with open(config_path, "r") as f:
         config = json.load(f)
 except FileNotFoundError:
     config = {
@@ -22,22 +27,24 @@ except FileNotFoundError:
         "debug_mode": False,  # Will print actions the script takes to the terminal
         "randomize_queue": False  # Picks a random message from the queue, instead of posting them in sequence
     }
-    with open("config.json", "w") as f:
+    with open(config_path, "w") as f:
         json.dump(config, f, indent=4)
     logging.info("Example config.json file created. Please update it with your credentials.")
     exit(1)
 
 # Initialize message queue
+queue_path = os.path.join(BASE_DIR, "message_queue.json")
 try:
-    with open("message_queue.json", "r") as f:
+    with open(queue_path, "r") as f:
         message_queue = json.load(f)
 except (FileNotFoundError, json.JSONDecodeError):
     message_queue = []
-    with open("message_queue.json", "w") as f:
+    with open(queue_path, "w") as f:
         json.dump(message_queue, f)
 
 # Initialize Telegram client
-client = TelegramClient("bot", config["api_id"], config["api_hash"]).start(bot_token=config["bot_token"])
+session_path = os.path.join(BASE_DIR, "bot.session")
+client = TelegramClient(session_path, config["api_id"], config["api_hash"]).start(bot_token=config["bot_token"])
 
 debug_mode = config.get("debug_mode", False)
 channel_id = config.get("channel_id", None)
@@ -45,7 +52,7 @@ randomize_queue = config.get("randomize_queue", False)
 
 def save_queue():
     try:
-        with open("message_queue.json", "w") as f:
+        with open(queue_path, "w") as f:
             json.dump(message_queue, f)
     except Exception as e:
         logging.error(f"Failed to save queue: {e}")
