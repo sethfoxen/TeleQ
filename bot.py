@@ -16,11 +16,11 @@ except FileNotFoundError:
         "api_id": "your_api_id",  # Get it from https://my.telegram.org/apps
         "api_hash": "your_api_hash",  # Get it from https://my.telegram.org/apps
         "bot_token": "your_bot_token",  #Create your bot using BotFather
-        "admin_id": 123456789,  #You can get yours using Get ID Bot '@get_id_bot'
-        "channel_id": -1001234567890,  #Add Get ID Bot to your channel, and send a message, could also be the ID of a group/supergroup
-        "forward_interval": 60,  #How often the bot posts to your channel, in seconds
-        "debug_mode": False,  #Will print actions the script takes to the terminal
-        "randomize_queue": False  #Picks a random message from the queue, instead of posting them in sequence
+        "admin_id": 123456789,  # You can get yours using Get ID Bot '@get_id_bot'
+        "channel_id": -1001234567890,  # Add Get ID Bot to your channel, and send a message, could also be the ID of a group/supergroup
+        "forward_interval": 60,  # How often the bot posts to your channel, in seconds
+        "debug_mode": False,  # Will print actions the script takes to the terminal
+        "randomize_queue": False  # Picks a random message from the queue, instead of posting them in sequence
     }
     with open("config.json", "w") as f:
         json.dump(config, f, indent=4)
@@ -48,7 +48,7 @@ def save_queue():
         with open("message_queue.json", "w") as f:
             json.dump(message_queue, f)
     except Exception as e:
-        logging.error(f"Failed to save queue: {e}, does your user have write permissions?")
+        logging.error(f"Failed to save queue: {e}")
 
 async def forward_messages():
     global message_queue
@@ -67,12 +67,12 @@ async def forward_messages():
                 save_queue()
                 await asyncio.sleep(e.seconds + 60)
             except errors.RPCError as e:
-                logging.error(f"Failed to forward message ID {message_id}: {e}, is the internet down?")
+                logging.error(f"Failed to forward message ID {message_id}: {e}")
                 message_queue.insert(0, message_id)  # Reinsert message in case of failure
                 save_queue()
             except Exception as e:
                 logging.error(f"Unexpected error forwarding message {message_id}: {e}")
-                message_queue.insert(0, message_id)  # Reinsert message in case of failure
+                message_queue.insert(0, message_id)
                 save_queue()
     except Exception as e:
         logging.error(f"Error in forward_messages: {e}")
@@ -81,6 +81,11 @@ async def forward_messages():
 async def handle_new_message(event):
     try:
         if event.is_private and not event.message.out:
+            if event.text:
+                if event.text.startswith("/"):
+                    if event.text.lower() == "/ping":
+                        await event.respond("pong")
+                    return
             message_queue.append(event.message.id)
             save_queue()
             if debug_mode:
