@@ -4,6 +4,7 @@ import json
 import logging
 import random
 from telethon import TelegramClient, events, errors
+from telethon.errors import FloodWaitError 
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -57,30 +58,35 @@ def save_queue():
     except Exception as e:
         logging.error(f"Failed to save queue: {e}")
 
+empty_queue_notified = False  # Global flag to track whether the admin has been notified
+
 async def forward_messages():
-    global message_queue
+    global message_queue, empty_queue_notified
     try:
         if message_queue and channel_id:
-            if randomize_queue:
-                random.shuffle(message_queue)
+            message_id = random.choice(message_queue) if randomize_queue else message_queue[0]
             if debug_mode:
-                logging.info(f"Forwarding 1 message to {channel_id}...")
-            message_id = message_queue.pop(0)
+                logging.info(f"Forwarding message ID {message_id} to {channel_id}...")
+
             try:
                 await client.forward_messages(channel_id, message_id, config["admin_id"])
-            except errors.FloodWait as e:
-                logging.warning(f"Rate limit reached. Sleeping for {e.seconds + 60} seconds.")
-                message_queue.insert(0, message_id)  # Reinsert message in case of failure
+                message_queue.remove(message_id)
                 save_queue()
+                empty_queue_notified = False  # Reset flag since queue is not empty
+            except errors.FloodWaitError as e:
+                logging.warning(f"Rate limit reached. Sleeping for {e.seconds + 60} seconds.")
                 await asyncio.sleep(e.seconds + 60)
             except errors.RPCError as e:
                 logging.error(f"Failed to forward message ID {message_id}: {e}")
-                message_queue.insert(0, message_id)  # Reinsert message in case of failure
+                message_queue.insert(0, message_id)
                 save_queue()
             except Exception as e:
                 logging.error(f"Unexpected error forwarding message {message_id}: {e}")
                 message_queue.insert(0, message_id)
                 save_queue()
+        elif not message_queue and not empty_queue_notified:
+            await client.send_message(config["admin_id"], "Queue is empty.")
+            empty_queue_notified = True  # Prevent repeated notifications
     except Exception as e:
         logging.error(f"Error in forward_messages: {e}")
 
@@ -88,17 +94,34 @@ async def forward_messages():
 async def handle_new_message(event):
     try:
         if event.is_private and not event.message.out:
-            if event.text:
-                if event.text.startswith("/"):
-                    if event.text.lower() == "/ping":
-                        await event.respond("pong")
-                    return
+            if event.text and event.text.startswith("/"):
+                if event.text.lower() == "/ping":
+                    await event.respond("pong")
+                    if debug_mode:
+                        logging.info(f"Command received: {event.text}")
+                elif event.text.lower() == "/queue":
+                    queue_size = len(message_queue)
+                    await event.respond(f"Queue has {queue_size} item(s).")
+                    if debug_mode:
+                        logging.info(f"Command received: {event.text}")
+                elif event.text.lower() == "/clearqueue":
+                    message_queue.clear()
+                    save_queue()
+                    await event.respond("Queue cleared.")
+                    if debug_mode:
+                        logging.info(f"Command received: {event.text}")
+                else:
+                    await event.respond("Unknown command. Available commands: /ping, /queue, /clearqueue")
+                    if debug_mode:
+                        logging.info(f"Unknown command received: {event.text}")
+                return  # Ensure commands do not get added to the queue
+
             message_queue.append(event.message.id)
             save_queue()
             if debug_mode:
-                logging.info(f"Added new message ID {event.message.id} to queue")
+                logging.info(f"Added new message ID {event.message.id} from {event.sender_id} to queue")
     except Exception as e:
-        logging.error(f"Error handling new message: {e}")
+        logging.error(f"Error handling message from {event.sender_id}: {e}")
 
 async def main():
     try:
@@ -106,13 +129,19 @@ async def main():
             try:
                 await forward_messages()
             except (errors.FloodWait, errors.RPCError) as e:
-                logging.warning(f"Error occurred, retrying after 60 seconds: {e}")
+                logging.warning(f"API error occurred: {e}. Retrying in 60 seconds.")
+                await asyncio.sleep(60)
+            except ConnectionError:
+                logging.warning("Lost internet connection. Retrying in 60 seconds...")
                 await asyncio.sleep(60)
             await asyncio.sleep(config["forward_interval"])
     except asyncio.CancelledError:
         logging.info("Main loop cancelled.")
     except Exception as e:
         logging.error(f"Unexpected error in main loop: {e}")
+    finally:
+        logging.info("Exiting main loop gracefully.")
+
 
 async def shutdown():
     try:
@@ -127,7 +156,6 @@ try:
 except (KeyboardInterrupt, SystemExit):
     logging.info("Received exit signal, shutting down...")
     loop.run_until_complete(shutdown())
-except Exception as e:
-    logging.error(f"Fatal error: {e}")
 finally:
-    loop.close()
+    if not loop.is_closed():
+        loop.close()
