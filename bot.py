@@ -200,3 +200,4 @@ except (KeyboardInterrupt, SystemExit):
 finally:
     if not loop.is_closed():
         loop.close()
+        
