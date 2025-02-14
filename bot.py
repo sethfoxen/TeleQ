@@ -5,6 +5,7 @@ import logging
 import random
 from telethon import TelegramClient, events, errors
 from telethon.errors import FloodWaitError 
+from collections import defaultdict
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -64,35 +65,51 @@ async def forward_messages():
     global message_queue, empty_queue_notified
     try:
         if message_queue and channel_id:
-            message_id = random.choice(message_queue) if randomize_queue else message_queue[0]
-            if debug_mode:
-                logging.info(f"Forwarding message ID {message_id} to {channel_id}...")
+            message_item = message_queue.pop(0)
 
-            try:
-                await client.forward_messages(channel_id, message_id, config["admin_id"])
-                message_queue.remove(message_id)
-                save_queue()
-                empty_queue_notified = False  # Reset flag since queue is not empty
-            except errors.FloodWaitError as e:
-                logging.warning(f"Rate limit reached. Sleeping for {e.seconds + 60} seconds.")
-                await asyncio.sleep(e.seconds + 60)
-            except errors.RPCError as e:
-                logging.error(f"Failed to forward message ID {message_id}: {e}")
-                message_queue.insert(0, message_id)
-                save_queue()
-            except Exception as e:
-                logging.error(f"Unexpected error forwarding message {message_id}: {e}")
-                message_queue.insert(0, message_id)
-                save_queue()
+            if isinstance(message_item, list):  # Forwarding an album
+                if debug_mode:
+                    logging.info(f"Forwarding album {message_item} to {channel_id}...")
+                await client.forward_messages(channel_id, message_item, config["admin_id"])
+            else:  # Forwarding a single message
+                if debug_mode:
+                    logging.info(f"Forwarding message ID {message_item} to {channel_id}...")
+                await client.forward_messages(channel_id, message_item, config["admin_id"])
+
+            save_queue()
+            empty_queue_notified = False  # Reset flag since queue is not empty
+
         elif not message_queue and not empty_queue_notified:
             await client.send_message(config["admin_id"], "Queue is empty.")
             empty_queue_notified = True  # Prevent repeated notifications
+
+    except errors.FloodWaitError as e:
+        logging.warning(f"Rate limit reached. Sleeping for {e.seconds + 60} seconds.")
+        await asyncio.sleep(e.seconds + 60)
+    except errors.RPCError as e:
+        logging.error(f"Failed to forward message: {e}")
+        message_queue.insert(0, message_item)
+        save_queue()
     except Exception as e:
-        logging.error(f"Error in forward_messages: {e}")
+        logging.error(f"Unexpected error forwarding message: {e}")
+        message_queue.insert(0, message_item)
+        save_queue()
+
+# Temporary storage for grouped messages before forwarding
+grouped_messages_buffer = defaultdict(list)
 
 @client.on(events.NewMessage)
 async def handle_new_message(event):
     try:
+        sender_id = event.sender_id
+
+        # Reject messages from non-admins
+        if sender_id != config["admin_id"]:
+            await event.respond("You're not an admin! IGNORED")
+            if debug_mode:
+                logging.info(f"Ignored message from non-admin {sender_id}")
+            return  # Stop processing
+
         if event.is_private and not event.message.out:
             if event.text and event.text.startswith("/"):
                 if event.text.lower() == "/ping":
@@ -116,12 +133,36 @@ async def handle_new_message(event):
                         logging.info(f"Unknown command received: {event.text}")
                 return  # Ensure commands do not get added to the queue
 
-            message_queue.append(event.message.id)
+            grouped_id = event.message.grouped_id
+
+            if grouped_id:
+                if debug_mode:
+                    logging.info(f"Detected grouped message: {grouped_id}")
+
+                # Store messages temporarily
+                grouped_messages_buffer[grouped_id].append(event.message.id)
+
+                # Wait a short time to ensure all messages in the group are received
+                await asyncio.sleep(1)
+
+                # Only process the first message in the group to prevent duplicates
+                if len(grouped_messages_buffer[grouped_id]) > 1:
+                    message_queue.append(grouped_messages_buffer[grouped_id])
+                    if debug_mode:
+                        logging.info(f"Stored grouped message {grouped_messages_buffer[grouped_id]} in queue")
+
+                del grouped_messages_buffer[grouped_id]  # Clear buffer after processing
+
+            else:
+                message_queue.append(event.message.id)  # Store single messages normally
+
             save_queue()
             if debug_mode:
-                logging.info(f"Added new message ID {event.message.id} from {event.sender_id} to queue")
+                logging.info(f"Added message ID {event.message.id} from admin {sender_id} to queue")
+
     except Exception as e:
-        logging.error(f"Error handling message from {event.sender_id}: {e}")
+        logging.error(f"Error handling message from {sender_id}: {e}")
+
 
 async def main():
     try:
