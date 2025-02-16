@@ -70,8 +70,8 @@ async def forward_messages():
 
             if isinstance(message_item, list):  # Forwarding an album
                 if debug_mode:
-                    logging.info(f"Forwarding album {message_item} to {channel_id}...")
-                await client.forward_messages(channel_id, message_item, config["admin_id"])
+                    logging.info(f"Forwarding album {message_item} to {channel_id} as a grouped message...")
+                await client.forward_messages(entity=channel_id, messages=message_item, from_peer=config["admin_id"])
             else:  # Forwarding a single message
                 if debug_mode:
                     logging.info(f"Forwarding message ID {message_item} to {channel_id}...")
