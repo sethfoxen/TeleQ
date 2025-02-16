@@ -25,7 +25,7 @@ except FileNotFoundError:
         "bot_token": "your_bot_token",  #Create your bot using BotFather
         "admin_id": 123456789,  # You can get yours using Get ID Bot '@get_id_bot'
         "channel_id": -1001234567890,  # Add Get ID Bot to your channel, and send a message, could also be the ID of a group/supergroup
-        "forward_interval": 60,  # How often the bot posts to your channel, in seconds
+        "forward_interval": 300,  # How often the bot posts to your channel, in seconds
         "debug_mode": False,  # Will print actions the script takes to the terminal
         "randomize_queue": False  # Picks a random message from the queue, instead of posting them in sequence
     }
@@ -65,7 +65,8 @@ async def forward_messages():
     global message_queue, empty_queue_notified
     try:
         if message_queue and channel_id:
-            message_item = message_queue.pop(0)
+            message_index = random.randint(0, len(message_queue) - 1) if randomize_queue else 0
+            message_item = message_queue.pop(message_index)
 
             if isinstance(message_item, list):  # Forwarding an album
                 if debug_mode:
