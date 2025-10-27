@@ -66,8 +66,9 @@ Add your created bot to your channel/group/supergroup, and allow it to manage me
 - If the bot reaches the Telegram API limit, it will wait for the required cooldown period plus an additional 60 seconds before retrying.
 - If the bot loses internet connection, it will retry every 60 seconds until reconnected.
 - Any errors will be logged for debugging.
-- 
+  
 ## Commands
 - `/ping` command that will reply to the chat, so you can tell if it's running or not.
 - `/queue` command will display the number of items in the queue.
 - `/clearqueue` clears the queue.
+
