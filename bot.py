@@ -118,7 +118,8 @@ async def handle_new_message(event):
 
         # Reject messages from non-admins
         if sender_id != config["admin_id"]:
-            await event.respond("You're not an admin! IGNORED")
+            # Kinda broken, sends response to configured channel instead of direct message
+            # await event.respond("You're not an admin! IGNORED")
             if debug_mode:
                 logging.info(f"Ignored message from non-admin {sender_id}")
             return  # Stop processing
@@ -214,4 +215,5 @@ except (KeyboardInterrupt, SystemExit):
 finally:
     if not loop.is_closed():
         loop.close()
+
         
